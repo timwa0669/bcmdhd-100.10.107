@@ -92,14 +92,15 @@ static void IRQHandler(struct sdio_func *func);
 static void IRQHandlerF2(struct sdio_func *func);
 #endif /* !defined(OOB_INTR_ONLY) */
 static int sdioh_sdmmc_get_cisaddr(sdioh_info_t *sd, uint32 regaddr);
-#if defined(OEM_ANDROID) && !defined(CONFIG_SOC_S5E5515)
+
+#if defined(ANDROID_SDIO_RESET)
+extern int sdio_reset_comm(struct mmc_card *card);
+#else
 static int sdio_reset_comm(struct mmc_card *card)
 {
 	return 0;
 }
-#else
-extern int sdio_reset_comm(struct mmc_card *card);
-#endif /* OEM_ANDROID */
+#endif /* ANDROID_SDIO_RESET */
 
 #define DEFAULT_SDIO_F2_BLKSIZE		512
 #ifndef CUSTOM_SDIO_F2_BLKSIZE
