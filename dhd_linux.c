@@ -523,7 +523,11 @@ static void dhd_update_rx_pkt_chainable_state(dhd_pub_t* dhdp, uint32 idx);
 #endif /* DHD_WET || DHD_MCAST_REGEN || DHD_L2_FILTER */
 
 /* Error bits */
-module_param(dhd_msg_level, uint, 0);
+#ifdef DHD_DEBUG
+module_param(dhd_msg_level, int, 0664);
+#else /* DHD_DEBUG */
+module_param(dhd_msg_level, int, 0);
+#endif /* DHD_DEBUG */
 
 #ifdef ARP_OFFLOAD_SUPPORT
 /* ARP offload enable */
@@ -8481,7 +8485,11 @@ dhd_init_logstrs_array(osl_t *osh, dhd_event_log_t *temp)
 		goto fail;
 	}
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
-	error = vfs_stat(logstrs_path, &stat);
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0))
+	error = vfs_getattr(&filep->f_path, &stat, STATX_BASIC_STATS, AT_STATX_SYNC_AS_STAT);
+#else /* (LINUX_VERSION_CODE > KERNEL_VERSION(4, 11, 0)) */
+	error = vfs_getattr(&filep->f_path, &stat);
+#endif /* (LINUX_VERSION_CODE > KERNEL_VERSION(4, 11, 0)) */
 	if (error) {
 		DHD_ERROR_NO_HW4(("%s: Failed to stat file %s \n", __FUNCTION__, logstrs_path));
 		goto fail;
@@ -19571,7 +19579,11 @@ do_dhd_log_dump(dhd_pub_t *dhdp, log_dump_type_t *type)
 		dhdp->last_file_posn = 0;
 	}
 #else
-	ret = vfs_stat(dump_path, &stat);
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0))
+	ret = vfs_getattr(&fp->f_path, &stat, STATX_BASIC_STATS, AT_STATX_SYNC_AS_STAT);
+#else /* (LINUX_VERSION_CODE > KERNEL_VERSION(4, 11, 0)) */
+	ret = vfs_getattr(&fp->f_path, &stat);
+#endif /* (LINUX_VERSION_CODE > KERNEL_VERSION(4, 11, 0)) */
 	if (ret < 0) {
 		DHD_ERROR(("file stat error, err = %d\n", ret));
 		goto exit2;

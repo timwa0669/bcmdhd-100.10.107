@@ -83,7 +83,11 @@ typedef struct bcmsdh_os_info {
 } bcmsdh_os_info_t;
 
 /* debugging macros */
+#ifdef DHD_DEBUG
+#define SDLX_MSG(x)     do { printf x; } while (0)
+#else /* DHD_DEBUG */
 #define SDLX_MSG(x)
+#endif /* DHD_DEBUG */
 
 /**
  * Checks to see if vendor and device IDs match a supported SDIO Host Controller.
@@ -451,7 +455,11 @@ void bcmsdh_oob_intr_unregister(bcmsdh_info_t *bcmsdh)
 /* Module parameters specific to each host-controller driver */
 
 extern uint sd_msglevel;	/* Debug message level */
+#ifdef DHD_DEBUG
+module_param(sd_msglevel, uint, 0644);
+#else
 module_param(sd_msglevel, uint, 0);
+#endif
 
 extern uint sd_power;	/* 0 = SD Power OFF, 1 = SD Power ON. */
 module_param(sd_power, uint, 0);

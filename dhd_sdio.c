@@ -1101,7 +1101,7 @@ dhdsdio_clk_kso_init(dhd_bus_t *bus)
 	return 0;
 }
 
-#define KSO_DBG(x)
+#define KSO_DBG(x)						DHD_TRACE(x)
 #define KSO_WAIT_US 50
 #define KSO_WAIT_MS 1
 #define KSO_SLEEP_RETRY_COUNT 20
@@ -5627,7 +5627,8 @@ dhd_bus_init(dhd_pub_t *dhdp, bool enforce_mutex)
 	ASSERT(bus->dhd);
 	if (!bus->dhd)
 		return 0;
-
+	
+#if (0)
 	if ((ret = dhdsdio_readshared_console(bus)) >= 0) {
 		DHD_ERROR(("initialized console"));
 #ifdef DHD_DEBUG
@@ -5637,6 +5638,7 @@ dhd_bus_init(dhd_pub_t *dhdp, bool enforce_mutex)
 		}
 #endif /* DHD_DEBUG */
 	}
+#endif
 
 #if defined(PLATFORM_IMX)
 	/* dhdsdio_readshared_console is failed sometimes in i.MX platform
