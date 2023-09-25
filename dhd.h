@@ -2307,6 +2307,9 @@ extern bool dhd_is_associated(dhd_pub_t *dhd, uint8 ifidx, int *retval);
 extern uint dhd_bus_chip_id(dhd_pub_t *dhdp);
 extern uint dhd_bus_chiprev_id(dhd_pub_t *dhdp);
 extern uint dhd_bus_chippkg_id(dhd_pub_t *dhdp);
+#ifdef DHD_MAP_CHIP_FIRMWARE_PATH
+extern uint dhd_bus_chipmodule_id(dhd_pub_t *dhdp);
+#endif /* DHD_MAP_CHIP_FIRMWARE_PATH */
 #endif /* defined(BCMSDIO) || defined(BCMPCIE) */
 int dhd_bus_get_fw_mode(dhd_pub_t *dhdp);
 

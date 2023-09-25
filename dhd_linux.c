@@ -545,8 +545,13 @@ module_param(dhd_arp_mode, uint, 0);
 /* Disable Prop tx */
 module_param(disable_proptx, int, 0644);
 /* load firmware and/or nvram values from the filesystem */
+#ifdef DHD_DYNAMIC_UPDATE_FW_NV_PATH
+module_param_string(firmware_path, firmware_path, MOD_PARAM_PATHLEN, 0664);
+module_param_string(nvram_path, nvram_path, MOD_PARAM_PATHLEN, 0664);
+#else /* DHD_DYNAMIC_UPDATE_FW_NV_PATH */
 module_param_string(firmware_path, firmware_path, MOD_PARAM_PATHLEN, 0660);
 module_param_string(nvram_path, nvram_path, MOD_PARAM_PATHLEN, 0660);
+#endif /* DHD_DYNAMIC_UPDATE_FW_NV_PATH */
 #ifdef DHD_UCODE_DOWNLOAD
 module_param_string(ucode_path, ucode_path, MOD_PARAM_PATHLEN, 0660);
 #endif /* DHD_UCODE_DOWNLOAD */
@@ -9415,6 +9420,140 @@ int dhd_bus_get_fw_mode(dhd_pub_t *dhdp)
 	return dhd_get_fw_mode(dhdp->info);
 }
 
+#ifdef DHD_MAP_CHIP_FIRMWARE_PATH
+
+#ifndef DHD_FIRMWARE_DIR_PATH
+#define DHD_FIRMWARE_DIR_PATH   "/vendor/etc/firmware"
+#endif
+
+typedef struct dhd_chip_fw_nv_map {
+	uint chip_id;
+	uint chip_rev;
+	uint chip_module;
+	const char *fw_name;
+	const char *nv_name;
+	const char *clm_name;
+} dhd_chip_fw_nv_map_t;
+
+#define DHD_FW_NV_DEFINE(chipname, fw_name, nv_name, clm_name) \
+			static const char DHD_ ## chipname ## _FW_PATH[] = fw_name; \
+			static const char DHD_ ## chipname ## _NV_PATH[] = nv_name; \
+			static const char DHD_ ## chipname ## _CLM_PATH[] = clm_name;
+
+#define DHD_FW_NV_ENTRY(chipname, chipid, chiprev, chipmodule) \
+			{                                   \
+				chipid,                         \
+				chiprev,                        \
+				chipmodule,                     \
+				DHD_ ## chipname ## _FW_PATH,   \
+				DHD_ ## chipname ## _NV_PATH,   \
+				DHD_ ## chipname ## _CLM_PATH   \
+			}
+
+DHD_FW_NV_DEFINE(43438,         "cyw43438.bin",         "cyw43438.txt",         "cyw43438.clm_blob");
+DHD_FW_NV_DEFINE(43438_AZW,     "cyw43438.bin",         "cyw43438_azw372.txt",  "cyw43438.clm_blob");
+DHD_FW_NV_DEFINE(43455,         "cyw43455.bin",         "cyw43455.txt",         "cyw43455.clm_blob");
+DHD_FW_NV_DEFINE(43455_AZW,     "cyw43455.bin",         "cyw43455_azw256.txt",  "cyw43455.clm_blob");
+DHD_FW_NV_DEFINE(4354,          "cyw4354.bin",          "cyw4354.txt",          "cyw4354.clm_blob");
+DHD_FW_NV_DEFINE(4354_AZW,      "cyw4354.bin",          "cyw4354_azw235.txt",   "cyw4354.clm_blob");
+#ifdef BCMSDIO
+DHD_FW_NV_DEFINE(54591,         "cyw54591_sdio.bin",    "cyw54591_sdio.txt",    "cyw54591.clm_blob");
+DHD_FW_NV_DEFINE(5557x,         "cyw5557x_sdio.bin",    "cyw5557x_sdio.txt",    "cyw5557x.clm_blob");
+#endif /* BCMSDIO */
+#ifdef BCMPCIE
+DHD_FW_NV_DEFINE(54591,         "cyw54591_pcie.bin",    "cyw54591_pcie.txt",    "cyw54591.clm_blob");
+DHD_FW_NV_DEFINE(5557x,         "cyw5557x_pcie.bin",    "cyw5557x_pcie.txt",    "cyw5557x.clm_blob");
+#endif /* BCMPCIE */
+
+static dhd_chip_fw_nv_map_t dhd_fw_nv_table[] = {
+	DHD_FW_NV_ENTRY(43438,          BCM43430_CHIP_ID,   1,      0),
+	DHD_FW_NV_ENTRY(43438_AZW,      BCM43430_CHIP_ID,   1,      0x81),
+	DHD_FW_NV_ENTRY(43455,          BCM4345_CHIP_ID,    6,      0),
+	DHD_FW_NV_ENTRY(43455_AZW,      BCM4345_CHIP_ID,    6,      0x81),
+	DHD_FW_NV_ENTRY(4354,           BCM4354_CHIP_ID,    0,      0),
+	DHD_FW_NV_ENTRY(4354_AZW,       BCM4354_CHIP_ID,    0,      0x81),
+	DHD_FW_NV_ENTRY(54591,          BCM4355_CHIP_ID,    0x0D,   0),
+	DHD_FW_NV_ENTRY(5557x,          CYW55560_CHIP_ID,   1,      0),
+};
+
+static dhd_chip_fw_nv_map_t* dhd_get_map_entry_by_chip(struct dhd_info *dhdinfo)
+{
+	int i;
+	int table_size = ARRAY_SIZE(dhd_fw_nv_table);
+	uint chip_id;
+	uint chip_rev;
+	uint chip_module;
+	dhd_chip_fw_nv_map_t *entry = NULL;
+
+	chip_id = dhd_bus_chip_id(&dhdinfo->pub);
+	chip_rev = dhd_bus_chiprev_id(&dhdinfo->pub);
+	chip_module = dhd_bus_chipmodule_id(&dhdinfo->pub);
+
+	DHD_TRACE(("%s, chipid = %d, chiprev = %d, chip_module = %d\n", __FUNCTION__, chip_id, chip_rev, chip_module));
+
+	for (i = 0; i < table_size; i++) {
+		if ((dhd_fw_nv_table[i].chip_id == chip_id) &&
+			(dhd_fw_nv_table[i].chip_rev == chip_rev) &&
+			(dhd_fw_nv_table[i].chip_module == chip_module)) {
+			entry = &dhd_fw_nv_table[i];
+			break;
+		}
+	}
+
+	return entry;
+}
+
+bool dhd_map_fw_nv_path_by_chip(
+		dhd_info_t *dhdinfo,
+		char* fw_name,
+		int fw_name_size,
+		char* nv_name,
+		int nv_name_size)
+{
+	dhd_chip_fw_nv_map_t *entry;
+
+	entry = dhd_get_map_entry_by_chip(dhdinfo);
+
+	if (entry == NULL)  {
+		DHD_ERROR(("%s, can't find map entry\n", __FUNCTION__));
+		return FALSE;
+	} else {
+		if ((fw_name != NULL) && (fw_name_size > 0)) {
+			snprintf(fw_name, (fw_name_size - 1), "%s/%s", DHD_FIRMWARE_DIR_PATH, entry->fw_name);
+		}
+		
+		if ((nv_name != NULL) && (nv_name_size > 0)) {
+			snprintf(nv_name, (nv_name_size - 1), "%s/%s", DHD_FIRMWARE_DIR_PATH, entry->nv_name);
+		}
+
+		DHD_INFO(("%s, fw_name = %s, nv_name = %s\n", __FUNCTION__, fw_name, nv_name));
+		return TRUE;
+	}
+}
+
+bool dhd_map_clm_path_by_chip(
+		dhd_info_t *dhdinfo,
+		char* clm_name,
+		int clm_name_size)
+{
+	dhd_chip_fw_nv_map_t *entry;
+
+	entry = dhd_get_map_entry_by_chip(dhdinfo);
+
+	if ((entry == NULL) || (entry->clm_name == NULL))  {
+		DHD_ERROR(("%s, can't find map entry\n", __FUNCTION__));
+		return FALSE;
+	} else {
+		if ((clm_name != NULL) && (clm_name_size > 0)) {
+			snprintf(clm_name, (clm_name_size - 1), "%s/%s", DHD_FIRMWARE_DIR_PATH, entry->clm_name);
+		}
+
+		DHD_INFO(("%s, clm_name = %s\n", __FUNCTION__, clm_name));
+		return TRUE;
+	}
+}
+#endif /* DHD_MAP_CHIP_FIRMWARE_PATH */
+
 extern char * nvram_get(const char *name);
 bool dhd_update_fw_nv_path(dhd_info_t *dhdinfo)
 {
@@ -9429,6 +9568,13 @@ bool dhd_update_fw_nv_path(dhd_info_t *dhdinfo)
 	wifi_adapter_info_t *adapter = dhdinfo->adapter;
 	int fw_path_len = sizeof(dhdinfo->fw_path);
 	int nv_path_len = sizeof(dhdinfo->nv_path);
+
+#ifdef DHD_MAP_CHIP_FIRMWARE_PATH
+	char *chip_fw = NULL;
+	int chip_fw_size = 0;
+	char *chip_nv = NULL;
+	int chip_nv_size = 0;
+#endif /* DHD_MAP_CHIP_FIRMWARE_PATH */
 
 	/* Update firmware and nvram path. The path may be from adapter info or module parameter
 	 * The path from adapter info is used for initialization only (as it won't change).
@@ -9464,16 +9610,44 @@ bool dhd_update_fw_nv_path(dhd_info_t *dhdinfo)
 	 *
 	 * TODO: need a solution for multi-chip, can't use the same firmware for all chips
 	 */
-	if (firmware_path[0] != '\0')
+	if (firmware_path[0] != '\0') {
 		fw = firmware_path;
+	}
+#ifdef DHD_MAP_CHIP_FIRMWARE_PATH
+	else {
+		chip_fw = firmware_path;
+		chip_fw_size = MOD_PARAM_PATHLEN;
+	}
+#endif /* DHD_MAP_CHIP_FIRMWARE_PATH */
 
-	if (nvram_path[0] != '\0')
+	if (nvram_path[0] != '\0') {
 		nv = nvram_path;
+	}
+#ifdef DHD_MAP_CHIP_FIRMWARE_PATH
+	else {
+		chip_nv = nvram_path;
+		chip_nv_size = MOD_PARAM_PATHLEN;
+	}
+#endif /* DHD_MAP_CHIP_FIRMWARE_PATH */
 
 #ifdef DHD_UCODE_DOWNLOAD
 	if (ucode_path[0] != '\0')
 		uc = ucode_path;
 #endif /* DHD_UCODE_DOWNLOAD */
+
+#ifdef DHD_MAP_CHIP_FIRMWARE_PATH
+	if ((chip_fw != NULL) || (chip_nv != NULL)) {
+		dhd_map_fw_nv_path_by_chip(dhdinfo, chip_fw, chip_fw_size, chip_nv, chip_nv_size);
+
+		if (chip_fw != NULL) {
+			fw = chip_fw;
+		}
+
+		if (chip_nv != NULL) {
+			nv = chip_nv;
+		}
+	}
+#endif /* DHD_MAP_CHIP_FIRMWARE_PATH */
 
 	if (fw && fw[0] != '\0') {
 		fw_len = strlen(fw);
@@ -9537,11 +9711,23 @@ bool dhd_update_fw_nv_path(dhd_info_t *dhdinfo)
 	}
 #endif /* DHD_UCODE_DOWNLOAD */
 
+#ifdef DHD_DYNAMIC_UPDATE_FW_NV_PATH
+	/* Update firmware/NVRAM module parameter */
+	if ((fw != NULL) && (firmware_path[0] == '\0')) {
+		strncpy(firmware_path, fw, (MOD_PARAM_PATHLEN - 1));
+	}
+
+	if ((nv != NULL) && (nvram_path[0] == '\0')) {
+		strncpy(nvram_path, nv, (MOD_PARAM_PATHLEN - 1));
+	}
+#else /* DHD_DYNAMIC_UPDATE_FW_NV_PATH */
 	/* clear the path in module parameter */
 	if (dhd_download_fw_on_driverload) {
 		firmware_path[0] = '\0';
 		nvram_path[0] = '\0';
 	}
+#endif /* DHD_DYNAMIC_UPDATE_FW_NV_PATH */
+
 #ifdef DHD_UCODE_DOWNLOAD
 	ucode_path[0] = '\0';
 	DHD_ERROR(("ucode path: %s\n", dhdinfo->uc_path));
@@ -10687,6 +10873,12 @@ dhd_preinit_ioctls(dhd_pub_t *dhd)
 	}
 #endif /* GET_CUSTOM_MAC_ENABLE */
 
+#ifdef DHD_MAP_CHIP_FIRMWARE_PATH
+	if (clm_path[0] == '\0') {
+		dhd_map_clm_path_by_chip(dhd->info, clm_path, MOD_PARAM_PATHLEN);
+	}
+#endif /* DHD_MAP_CHIP_FIRMWARE_PATH */
+
 	if ((ret = dhd_apply_default_clm(dhd, clm_path)) < 0) {
 		DHD_ERROR(("%s: CLM set failed. Abort initialization.\n", __FUNCTION__));
 		goto done;
@@ -11058,6 +11250,12 @@ dhd_preinit_ioctls(dhd_pub_t *dhd)
 	}
 
 #else /* OEM_ANDROID */
+
+#ifdef DHD_MAP_CHIP_FIRMWARE_PATH
+	if (clm_path[0] == '\0') {
+		dhd_map_clm_path_by_chip(dhd->info, clm_path, MOD_PARAM_PATHLEN);
+	}
+#endif /* DHD_MAP_CHIP_FIRMWARE_PATH */
 
 	if ((ret = dhd_apply_default_clm(dhd, clm_path)) < 0) {
 		DHD_ERROR(("%s: CLM set failed. Abort initialization.\n", __FUNCTION__));

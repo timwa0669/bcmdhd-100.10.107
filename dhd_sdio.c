@@ -300,6 +300,10 @@ typedef struct dhd_bus {
 	char		*fw_path;		/* module_param: path to firmware image */
 	char		*nv_path;		/* module_param: path to nvram vars file */
 
+#ifdef DHD_MAP_CHIP_FIRMWARE_PATH
+	uint		chipmodule; 	/* chip module ID */
+#endif /* DHD_MAP_CHIP_FIRMWARE_PATH */
+
 	uint		blocksize;		/* Block size of SDIO transfers */
 	uint		roundup;		/* Max roundup limit */
 
@@ -717,6 +721,10 @@ do {												\
 #endif /* BCMSPI */
 
 extern uint sd_f2_blocksize;
+
+#ifdef DHD_MAP_CHIP_FIRMWARE_PATH
+extern uint sd_chip_module;
+#endif /* DHD_MAP_CHIP_FIRMWARE_PATH */
 
 #ifdef SDTEST
 static void dhdsdio_testrcv(dhd_bus_t *bus, void *pkt, uint seq);
@@ -8815,6 +8823,10 @@ dhdsdio_probe_attach(struct dhd_bus *bus, osl_t *osh, void *sdh, void *regsva,
 		bus->sih->socitype, bus->sih->chip, bus->sih->chiprev, bus->sih->chippkg));
 #endif /* DHD_DEBUG */
 
+#ifdef DHD_MAP_CHIP_FIRMWARE_PATH
+	bus->chipmodule = sd_chip_module;
+#endif /* DHD_MAP_CHIP_FIRMWARE_PATH */
+
 	bcmsdh_chipinfo(sdh, bus->sih->chip, bus->sih->chiprev);
 
 	if (!dhdsdio_chipmatch((uint16)bus->sih->chip)) {
@@ -10185,6 +10197,16 @@ uint dhd_bus_chiprev_id(dhd_pub_t *dhdp)
 
 	return bus->sih->chiprev;
 }
+
+#ifdef DHD_MAP_CHIP_FIRMWARE_PATH
+/* Get Chip Module ID version*/
+uint dhd_bus_chipmodule_id(dhd_pub_t *dhdp)
+{
+	dhd_bus_t *bus = dhdp->bus;
+
+	return bus->chipmodule;
+}
+#endif /* DHD_MAP_CHIP_FIRMWARE_PATH */
 
 /* Get Chip Pkg ID version */
 uint dhd_bus_chippkg_id(dhd_pub_t *dhdp)

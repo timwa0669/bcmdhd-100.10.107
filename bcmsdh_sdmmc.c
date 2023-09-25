@@ -129,6 +129,10 @@ uint sd_hiok = FALSE;	/* Don't use hi-speed mode by default */
 uint sd_msglevel = SDH_ERROR_VAL;
 uint sd_use_dma = TRUE;
 
+#ifdef DHD_MAP_CHIP_FIRMWARE_PATH
+uint sd_chip_module = 0;
+#endif /* DHD_MAP_CHIP_FIRMWARE_PATH */
+
 #ifndef CUSTOM_RXCHAIN
 #define CUSTOM_RXCHAIN 0
 #endif // endif
@@ -230,6 +234,21 @@ sdioh_attach(osl_t *osh, struct sdio_func *func)
 #if defined(BT_OVER_SDIO)
 	sd->func[3] = NULL;
 #endif /* defined (BT_OVER_SDIO) */
+
+#ifdef DHD_MAP_CHIP_FIRMWARE_PATH
+	if (func->num == 2) {
+		struct sdio_func_tuple *tuple = func->card->tuples;
+
+		while (tuple != NULL) {
+			if ((tuple->code == 0x81) && (tuple->size == 0x01) && (tuple->data[0] == 0x01)) {
+				sd_err(("%s: Got the chip vendor, tuple code=0x81\n", __FUNCTION__));
+				sd_chip_module = 0x81;
+				break;
+			}
+			tuple = tuple->next;
+		}
+	}
+#endif /* DHD_MAP_CHIP_FIRMWARE_PATH */
 
 	sd->num_funcs = 2;
 	sd->sd_blockmode = TRUE;

@@ -486,6 +486,11 @@ module_param(sd_delay_value, uint, 0);
 extern char dhd_sdiod_uhsi_ds_override[2];
 module_param_string(dhd_sdiod_uhsi_ds_override, dhd_sdiod_uhsi_ds_override, 2, 0);
 
+#ifdef DHD_MAP_CHIP_FIRMWARE_PATH
+extern uint sd_chip_module;
+module_param(sd_chip_module, int, 0);
+#endif /* DHD_MAP_CHIP_FIRMWARE_PATH */
+
 #endif // endif
 
 #ifdef BCMSDH_MODULE
