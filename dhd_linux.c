@@ -19038,6 +19038,7 @@ dhd_log_flush(dhd_pub_t *dhdp, log_dump_type_t *type)
 	/* flush the event work items to get any fw events/logs
 	 * flush_work is a blocking call
 	 */
+#ifdef SHOW_LOGTRACE
 #ifdef EWP_EDL
 	if (dhd_info->pub.dongle_edl_support) {
 		/* wait till existing edl items are processed */
@@ -19059,6 +19060,7 @@ dhd_log_flush(dhd_pub_t *dhdp, log_dump_type_t *type)
 #else
 	dhd_flush_logtrace_process(dhd_info);
 #endif /* EWP_EDL */
+#endif /* SHOW_LOGTRACE */
 
 #ifdef CUSTOMER_HW4_DEBUG
 	/* print last 'x' KB of preserve buffer data to kmsg console
