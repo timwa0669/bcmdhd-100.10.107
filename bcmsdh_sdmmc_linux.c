@@ -275,6 +275,8 @@ static int dummy_probe(struct sdio_func *func,
                               const struct sdio_device_id *id)
 {
 	sd_err(("%s: enter\n", __FUNCTION__));
+	
+#if (0)
 	if (func)
 		sd_err(("%s: func->num=0x%x; \n", __FUNCTION__, func->num));
 	if (id) {
@@ -284,6 +286,8 @@ static int dummy_probe(struct sdio_func *func,
 			(id->vendor != CY_DNGL_VID))
 				return -ENODEV;
 	}
+#endif
+
 	if (func && (func->num != 2)) {
 		return 0;
 	}
