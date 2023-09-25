@@ -8839,11 +8839,6 @@ dhd_attach(osl_t *osh, struct dhd_bus *bus, uint bus_hdrlen)
 	/* Initialize thread based operation and lock */
 	sema_init(&dhd->sdsem, 1);
 
-	/* Some DHD modules (e.g. cfg80211) configures operation mode based on firmware name.
-	 * This is indeed a hack but we have to make it work properly before we have a better
-	 * solution
-	 */
-	dhd_update_fw_nv_path(dhd);
 	dhd->pub.pcie_txs_metadata_enable = pcie_txs_metadata_enable;
 
 	/* Link to info module */
@@ -8854,8 +8849,14 @@ dhd_attach(osl_t *osh, struct dhd_bus *bus, uint bus_hdrlen)
 	dhd->pub.hdrlen = bus_hdrlen;
 	dhd->pub.txoff = FALSE;
 
+	/* Some DHD modules (e.g. cfg80211) configures operation mode based on firmware name.
+	 * This is indeed a hack but we have to make it work properly before we have a better
+	 * solution
+	 */
+	dhd_update_fw_nv_path(dhd);
+
 	/* Set network interface name if it was provided as module parameter */
-	if (iface_name[0]) {
+	if (iface_name[0]) 
 		int len;
 		char ch;
 		strncpy(if_name, iface_name, IFNAMSIZ);
