@@ -18477,8 +18477,11 @@ void dhd_schedule_log_dump(dhd_pub_t *dhdp, void *type)
 static void
 dhd_print_buf_addr(dhd_pub_t *dhdp, char *name, void *buf, unsigned int size)
 {
-	if ((dhdp->memdump_enabled == DUMP_MEMONLY) ||
+	if (
+#ifdef DHD_FW_COREDUMP
+		(dhdp->memdump_enabled == DUMP_MEMONLY) ||
 		(dhdp->memdump_enabled == DUMP_MEMFILE_BUGON) ||
+#endif /* DHD_FW_COREDUMP */
 		(dhdp->memdump_type == DUMP_TYPE_SMMU_FAULT)) {
 #if defined(CONFIG_ARM64)
 		DHD_ERROR(("-------- %s: buf(va)=%llx, buf(pa)=%llx, bufsize=%d\n",
