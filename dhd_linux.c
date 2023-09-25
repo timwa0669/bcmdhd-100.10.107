@@ -11513,9 +11513,6 @@ dhd_preinit_ioctls(dhd_pub_t *dhd)
 		setbit(eventmask_msg->mask, WLC_E_MGMT_FRAME_TXSTATUS);
 		setbit(eventmask_msg->mask, WLC_E_MGMT_FRAME_OFF_CHAN_COMPLETE);
 #endif /* WL_SAE */
-#ifndef CONFIG_SOC_S5E5515
-		setbit(eventmask_msg->mask, WLC_E_IND_DOS_STATUS);
-#endif // endif
 #ifdef ENABLE_HOGSQS
 		setbit(eventmask_msg->mask, WLC_E_LDF_HOGGER);
 #endif /* ENABLE_HOGSQS */
