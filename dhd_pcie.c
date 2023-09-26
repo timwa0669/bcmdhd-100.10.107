@@ -1221,6 +1221,8 @@ skip_intstatus_read:
 
 		bus->isr_intr_disable_count++;
 
+		dhdpcie_bus_intr_disable(bus); /* Disable interrupt using IntMask!! */
+		
 		/* For Linux, Macos etc (otherthan NDIS) instead of disabling
 		* dongle interrupt by clearing the IntMask, disable directly
 		* interrupt from the host side, so that host will not recieve
