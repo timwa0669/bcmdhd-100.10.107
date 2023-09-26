@@ -57,6 +57,14 @@
 #include <bcmsdbus.h>
 #include <trxhdr.h>
 
+#ifdef DHD_KSO_MMC_RETUNE
+#if ((LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)) || defined(CONFIG_DHD_PLAT_ROCKCHIP))
+#include <linux/mmc/sdio_func.h>
+#include <linux/mmc/host.h>
+#include "bcmsdh_sdmmc.h"
+#endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)) */
+#endif /* DHD_KSO_MMC_RETURN */
+
 #include <ethernet.h>
 #include <802.1d.h>
 #include <802.11.h>
@@ -1120,7 +1128,30 @@ dhdsdio_clk_kso_enab(dhd_bus_t *bus, bool on)
 	int err = 0;
 	int try_cnt = 0;
 
+#ifdef DHD_KSO_MMC_RETUNE
+#if ((LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)) || defined(CONFIG_DHD_PLAT_ROCKCHIP))
+	struct sdioh_info *sd = (struct sdioh_info *)(bus->sdh->sdioh);
+	struct sdio_func *func = sd->func[1];
+	struct mmc_host *host = func->card->host;
+#endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)) */
+#endif /* DHD_KSO_MMC_RETUNE */
+
 	KSO_DBG(("%s> op:%s\n", __FUNCTION__, (on ? "KSO_SET" : "KSO_CLR")));
+
+#ifdef DHD_KSO_MMC_RETUNE
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0))
+	sdio_retune_crc_disable(func);
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0) */
+	if (on) {
+		mmc_retune_hold_now(host);
+	}
+#else /* (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)) */
+#ifdef CONFIG_DHD_PLAT_ROCKCHIP
+	mmc_retune_disable(host);
+#endif /* CONFIG_DHD_PLAT_ROCKCHIP */
+#endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)) */
+#endif /* DHD_KSO_MMC_RETUNE */
 
 	wr_val |= (on << SBSDIO_FUNC1_SLEEPCSR_KSO_SHIFT);
 
@@ -1133,7 +1164,7 @@ dhdsdio_clk_kso_enab(dhd_bus_t *bus, bool on)
 	if ((!on) && (bus->sih->chip == BCM43012_CHIP_ID ||
 			bus->sih->chip == CYW55500_CHIP_ID ||
 			bus->sih->chip == CYW55560_CHIP_ID)) {
-		return err;
+		goto exit;
 	}
 
 	if (on) {
@@ -1171,6 +1202,22 @@ dhdsdio_clk_kso_enab(dhd_bus_t *bus, bool on)
 		DHD_ERROR(("%s> op:%s, ERROR: try_cnt:%d, rd_val:%x, ERR:%x \n",
 			__FUNCTION__, (on ? "KSO_SET" : "KSO_CLR"), try_cnt, rd_val, err));
 	}
+
+exit:
+#ifdef DHD_KSO_MMC_RETUNE
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0))
+	if (on) {
+		mmc_retune_release(host);
+	}
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0))
+	sdio_retune_crc_enable(func);
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0) */
+#else /* (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)) */
+#ifdef CONFIG_DHD_PLAT_ROCKCHIP
+	mmc_retune_enable(host);
+#endif /* CONFIG_DHD_PLAT_ROCKCHIP */
+#endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)) */
+#endif /* DHD_KSO_MMC_RETUNE */
 
 	return err;
 }
