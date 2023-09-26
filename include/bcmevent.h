@@ -304,8 +304,14 @@ typedef union bcm_event_msg_u {
 							 *  dwell time complete
 							 */
 #define WLC_E_WSEC                      186     /* wsec keymgmt event */
+
+#ifdef CONFIG_DHD_CYW43455
+#define WLC_E_EXT_AUTH_REQ              166     /* authentication request received */
+#define WLC_E_EXT_AUTH_FRAME_RX         167     /* authentication request received */
+#else /* CONFIG_DHD_CYW43455 */
 #define WLC_E_EXT_AUTH_REQ              187     /* authentication request received */
 #define WLC_E_EXT_AUTH_FRAME_RX         188     /* authentication request received */
+#endif /* CONFIG_DHD_CYW43455 */
 #define WLC_E_MGMT_FRAME_TXSTATUS       189     /* mgmt frame Tx complete */
 #define WLC_E_MGMT_FRAME_OFF_CHAN_COMPLETE              190
 #define WLC_E_IND_DOS_STATUS            191
