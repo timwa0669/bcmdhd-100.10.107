@@ -21878,7 +21878,11 @@ get_debug_dump_time(char *str)
 		ktime_get_real_ts64(&curtime);
 		local_time = (u64)(curtime.tv_sec -
 				(sys_tz.tz_minuteswest * DHD_LOG_DUMP_TS_MULTIPLIER_VALUE));
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0))
+		rtc_time64_to_tm(local_time, &tm);
+#else /* (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0)) */
 		rtc_time_to_tm(local_time, &tm);
+#endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0)) */
 
 		snprintf(str, DEBUG_DUMP_TIME_BUF_LEN, DHD_LOG_DUMP_TS_FMT_YYMMDDHHMMSSMSMS,
 				tm.tm_year - 100, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min,
