@@ -8856,7 +8856,7 @@ dhd_attach(osl_t *osh, struct dhd_bus *bus, uint bus_hdrlen)
 	dhd_update_fw_nv_path(dhd);
 
 	/* Set network interface name if it was provided as module parameter */
-	if (iface_name[0]) 
+	if (iface_name[0]) { 
 		int len;
 		char ch;
 		strncpy(if_name, iface_name, IFNAMSIZ);
