@@ -825,6 +825,8 @@ extern void copy_debug_dump_time(char *dest, char *src);
 
 #if defined(CUSTOMER_HW2) || defined(BOARD_HIKEY)
 #define DHD_COMMON_DUMP_PATH	"/data/misc/wifi/"
+#elif defined(OEM_ANDROID) && defined(CONFIG_DHD_PLAT_ROCKCHIP)
+#define DHD_COMMON_DUMP_PATH	"/data/misc/wifi/"
 #elif defined(OEM_ANDROID) && (defined(BOARD_PANDA) || defined(__ARM_ARCH_7A__))
 #define DHD_COMMON_DUMP_PATH	"/data/vendor/wifi/"
 #elif defined(OEM_ANDROID)  	/* For other Android platforms such as Brix Live Image */
@@ -2307,6 +2309,9 @@ extern bool dhd_is_associated(dhd_pub_t *dhd, uint8 ifidx, int *retval);
 extern uint dhd_bus_chip_id(dhd_pub_t *dhdp);
 extern uint dhd_bus_chiprev_id(dhd_pub_t *dhdp);
 extern uint dhd_bus_chippkg_id(dhd_pub_t *dhdp);
+#ifdef DHD_MAP_CHIP_FIRMWARE_PATH
+extern uint dhd_bus_chipmodule_id(dhd_pub_t *dhdp);
+#endif /* DHD_MAP_CHIP_FIRMWARE_PATH */
 #endif /* defined(BCMSDIO) || defined(BCMPCIE) */
 int dhd_bus_get_fw_mode(dhd_pub_t *dhdp);
 

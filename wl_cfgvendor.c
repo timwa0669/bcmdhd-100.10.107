@@ -7352,7 +7352,11 @@ static void wl_cfgvendor_dbg_send_file_dump_evt(void *ctx, const void *data,
 		wl_cfgvendor_nla_put_axi_error_data(skb, ndev);
 	}
 #endif /* DNGL_AXI_ERROR_LOGGING */
-	if (dhd_pub->memdump_enabled || (dhd_pub->memdump_type == DUMP_TYPE_BY_SYSDUMP)) {
+	if (
+#ifdef DHD_FW_COREDUMP
+		dhd_pub->memdump_enabled ||
+#endif /* DHD_FW_COREDUMP */
+		(dhd_pub->memdump_type == DUMP_TYPE_BY_SYSDUMP)) {
 		if (((ret = wl_cfgvendor_nla_put_memdump_data(skb, ndev, fw_len)) < 0) ||
 			((ret = wl_cfgvendor_nla_put_debug_dump_data(skb, ndev)) < 0) ||
 			((ret = wl_cfgvendor_nla_put_sssr_dump_data(skb, ndev)) < 0)) {

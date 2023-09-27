@@ -523,7 +523,11 @@ static void dhd_update_rx_pkt_chainable_state(dhd_pub_t* dhdp, uint32 idx);
 #endif /* DHD_WET || DHD_MCAST_REGEN || DHD_L2_FILTER */
 
 /* Error bits */
-module_param(dhd_msg_level, uint, 0);
+#ifdef DHD_DEBUG
+module_param(dhd_msg_level, int, 0664);
+#else /* DHD_DEBUG */
+module_param(dhd_msg_level, int, 0);
+#endif /* DHD_DEBUG */
 
 #ifdef ARP_OFFLOAD_SUPPORT
 /* ARP offload enable */
@@ -545,8 +549,13 @@ module_param(dhd_arp_mode, uint, 0);
 /* Disable Prop tx */
 module_param(disable_proptx, int, 0644);
 /* load firmware and/or nvram values from the filesystem */
+#ifdef DHD_DYNAMIC_UPDATE_FW_NV_PATH
+module_param_string(firmware_path, firmware_path, MOD_PARAM_PATHLEN, 0664);
+module_param_string(nvram_path, nvram_path, MOD_PARAM_PATHLEN, 0664);
+#else /* DHD_DYNAMIC_UPDATE_FW_NV_PATH */
 module_param_string(firmware_path, firmware_path, MOD_PARAM_PATHLEN, 0660);
 module_param_string(nvram_path, nvram_path, MOD_PARAM_PATHLEN, 0660);
+#endif /* DHD_DYNAMIC_UPDATE_FW_NV_PATH */
 #ifdef DHD_UCODE_DOWNLOAD
 module_param_string(ucode_path, ucode_path, MOD_PARAM_PATHLEN, 0660);
 #endif /* DHD_UCODE_DOWNLOAD */
@@ -704,6 +713,12 @@ static char *map_file_path = PLATFORM_PATH"rtecdc.map";
 static char *rom_st_str_file_path = PLATFORM_PATH"roml.bin";
 static char *rom_map_file_path = PLATFORM_PATH"roml.map";
 #elif defined(CUSTOMER_HW2) || defined(BOARD_HIKEY)
+static char *logstrs_path = "/data/misc/wifi/logstrs.bin";
+char *st_str_file_path = "/data/misc/wifi/rtecdc.bin";
+static char *map_file_path = "/data/misc/wifi/rtecdc.map";
+static char *rom_st_str_file_path = "/data/misc/wifi/roml.bin";
+static char *rom_map_file_path = "/data/misc/wifi/roml.map";
+#elif defined(OEM_ANDROID) && defined(CONFIG_DHD_PLAT_ROCKCHIP)
 static char *logstrs_path = "/data/misc/wifi/logstrs.bin";
 char *st_str_file_path = "/data/misc/wifi/rtecdc.bin";
 static char *map_file_path = "/data/misc/wifi/rtecdc.map";
@@ -8481,7 +8496,11 @@ dhd_init_logstrs_array(osl_t *osh, dhd_event_log_t *temp)
 		goto fail;
 	}
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
-	error = vfs_stat(logstrs_path, &stat);
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0))
+	error = vfs_getattr(&filep->f_path, &stat, STATX_BASIC_STATS, AT_STATX_SYNC_AS_STAT);
+#else /* (LINUX_VERSION_CODE > KERNEL_VERSION(4, 11, 0)) */
+	error = vfs_getattr(&filep->f_path, &stat);
+#endif /* (LINUX_VERSION_CODE > KERNEL_VERSION(4, 11, 0)) */
 	if (error) {
 		DHD_ERROR_NO_HW4(("%s: Failed to stat file %s \n", __FUNCTION__, logstrs_path));
 		goto fail;
@@ -9416,6 +9435,140 @@ int dhd_bus_get_fw_mode(dhd_pub_t *dhdp)
 	return dhd_get_fw_mode(dhdp->info);
 }
 
+#ifdef DHD_MAP_CHIP_FIRMWARE_PATH
+
+#ifndef DHD_FIRMWARE_DIR_PATH
+#define DHD_FIRMWARE_DIR_PATH   "/vendor/etc/firmware"
+#endif
+
+typedef struct dhd_chip_fw_nv_map {
+	uint chip_id;
+	uint chip_rev;
+	uint chip_module;
+	const char *fw_name;
+	const char *nv_name;
+	const char *clm_name;
+} dhd_chip_fw_nv_map_t;
+
+#define DHD_FW_NV_DEFINE(chipname, fw_name, nv_name, clm_name) \
+			static const char DHD_ ## chipname ## _FW_PATH[] = fw_name; \
+			static const char DHD_ ## chipname ## _NV_PATH[] = nv_name; \
+			static const char DHD_ ## chipname ## _CLM_PATH[] = clm_name;
+
+#define DHD_FW_NV_ENTRY(chipname, chipid, chiprev, chipmodule) \
+			{                                   \
+				chipid,                         \
+				chiprev,                        \
+				chipmodule,                     \
+				DHD_ ## chipname ## _FW_PATH,   \
+				DHD_ ## chipname ## _NV_PATH,   \
+				DHD_ ## chipname ## _CLM_PATH   \
+			}
+
+DHD_FW_NV_DEFINE(43438,         "cyw43438.bin",         "cyw43438.txt",         "cyw43438.clm_blob");
+DHD_FW_NV_DEFINE(43438_AZW,     "cyw43438.bin",         "cyw43438_azw372.txt",  "cyw43438.clm_blob");
+DHD_FW_NV_DEFINE(43455,         "cyw43455.bin",         "cyw43455.txt",         "cyw43455.clm_blob");
+DHD_FW_NV_DEFINE(43455_AZW,     "cyw43455.bin",         "cyw43455_azw256.txt",  "cyw43455.clm_blob");
+DHD_FW_NV_DEFINE(4354,          "cyw4354.bin",          "cyw4354.txt",          "cyw4354.clm_blob");
+DHD_FW_NV_DEFINE(4354_AZW,      "cyw4354.bin",          "cyw4354_azw235.txt",   "cyw4354.clm_blob");
+#ifdef BCMSDIO
+DHD_FW_NV_DEFINE(54591,         "cyw54591_sdio.bin",    "cyw54591_sdio.txt",    "cyw54591.clm_blob");
+DHD_FW_NV_DEFINE(5557x,         "cyw5557x_sdio.bin",    "cyw5557x_sdio.txt",    "cyw5557x.clm_blob");
+#endif /* BCMSDIO */
+#ifdef BCMPCIE
+DHD_FW_NV_DEFINE(54591,         "cyw54591_pcie.bin",    "cyw54591_pcie.txt",    "cyw54591.clm_blob");
+DHD_FW_NV_DEFINE(5557x,         "cyw5557x_pcie.bin",    "cyw5557x_pcie.txt",    "cyw5557x.clm_blob");
+#endif /* BCMPCIE */
+
+static dhd_chip_fw_nv_map_t dhd_fw_nv_table[] = {
+	DHD_FW_NV_ENTRY(43438,          BCM43430_CHIP_ID,   1,      0),
+	DHD_FW_NV_ENTRY(43438_AZW,      BCM43430_CHIP_ID,   1,      0x81),
+	DHD_FW_NV_ENTRY(43455,          BCM4345_CHIP_ID,    6,      0),
+	DHD_FW_NV_ENTRY(43455_AZW,      BCM4345_CHIP_ID,    6,      0x81),
+	DHD_FW_NV_ENTRY(4354,           BCM4354_CHIP_ID,    0,      0),
+	DHD_FW_NV_ENTRY(4354_AZW,       BCM4354_CHIP_ID,    0,      0x81),
+	DHD_FW_NV_ENTRY(54591,          BCM4355_CHIP_ID,    0x0D,   0),
+	DHD_FW_NV_ENTRY(5557x,          CYW55560_CHIP_ID,   1,      0),
+};
+
+static dhd_chip_fw_nv_map_t* dhd_get_map_entry_by_chip(struct dhd_info *dhdinfo)
+{
+	int i;
+	int table_size = ARRAY_SIZE(dhd_fw_nv_table);
+	uint chip_id;
+	uint chip_rev;
+	uint chip_module;
+	dhd_chip_fw_nv_map_t *entry = NULL;
+
+	chip_id = dhd_bus_chip_id(&dhdinfo->pub);
+	chip_rev = dhd_bus_chiprev_id(&dhdinfo->pub);
+	chip_module = dhd_bus_chipmodule_id(&dhdinfo->pub);
+
+	DHD_TRACE(("%s, chipid = %d, chiprev = %d, chip_module = %d\n", __FUNCTION__, chip_id, chip_rev, chip_module));
+
+	for (i = 0; i < table_size; i++) {
+		if ((dhd_fw_nv_table[i].chip_id == chip_id) &&
+			(dhd_fw_nv_table[i].chip_rev == chip_rev) &&
+			(dhd_fw_nv_table[i].chip_module == chip_module)) {
+			entry = &dhd_fw_nv_table[i];
+			break;
+		}
+	}
+
+	return entry;
+}
+
+bool dhd_map_fw_nv_path_by_chip(
+		dhd_info_t *dhdinfo,
+		char* fw_name,
+		int fw_name_size,
+		char* nv_name,
+		int nv_name_size)
+{
+	dhd_chip_fw_nv_map_t *entry;
+
+	entry = dhd_get_map_entry_by_chip(dhdinfo);
+
+	if (entry == NULL)  {
+		DHD_ERROR(("%s, can't find map entry\n", __FUNCTION__));
+		return FALSE;
+	} else {
+		if ((fw_name != NULL) && (fw_name_size > 0)) {
+			snprintf(fw_name, (fw_name_size - 1), "%s/%s", DHD_FIRMWARE_DIR_PATH, entry->fw_name);
+		}
+		
+		if ((nv_name != NULL) && (nv_name_size > 0)) {
+			snprintf(nv_name, (nv_name_size - 1), "%s/%s", DHD_FIRMWARE_DIR_PATH, entry->nv_name);
+		}
+
+		DHD_INFO(("%s, fw_name = %s, nv_name = %s\n", __FUNCTION__, fw_name, nv_name));
+		return TRUE;
+	}
+}
+
+bool dhd_map_clm_path_by_chip(
+		dhd_info_t *dhdinfo,
+		char* clm_name,
+		int clm_name_size)
+{
+	dhd_chip_fw_nv_map_t *entry;
+
+	entry = dhd_get_map_entry_by_chip(dhdinfo);
+
+	if ((entry == NULL) || (entry->clm_name == NULL))  {
+		DHD_ERROR(("%s, can't find map entry\n", __FUNCTION__));
+		return FALSE;
+	} else {
+		if ((clm_name != NULL) && (clm_name_size > 0)) {
+			snprintf(clm_name, (clm_name_size - 1), "%s/%s", DHD_FIRMWARE_DIR_PATH, entry->clm_name);
+		}
+
+		DHD_INFO(("%s, clm_name = %s\n", __FUNCTION__, clm_name));
+		return TRUE;
+	}
+}
+#endif /* DHD_MAP_CHIP_FIRMWARE_PATH */
+
 extern char * nvram_get(const char *name);
 bool dhd_update_fw_nv_path(dhd_info_t *dhdinfo)
 {
@@ -9430,6 +9583,13 @@ bool dhd_update_fw_nv_path(dhd_info_t *dhdinfo)
 	wifi_adapter_info_t *adapter = dhdinfo->adapter;
 	int fw_path_len = sizeof(dhdinfo->fw_path);
 	int nv_path_len = sizeof(dhdinfo->nv_path);
+
+#ifdef DHD_MAP_CHIP_FIRMWARE_PATH
+	char *chip_fw = NULL;
+	int chip_fw_size = 0;
+	char *chip_nv = NULL;
+	int chip_nv_size = 0;
+#endif /* DHD_MAP_CHIP_FIRMWARE_PATH */
 
 	/* Update firmware and nvram path. The path may be from adapter info or module parameter
 	 * The path from adapter info is used for initialization only (as it won't change).
@@ -9465,16 +9625,44 @@ bool dhd_update_fw_nv_path(dhd_info_t *dhdinfo)
 	 *
 	 * TODO: need a solution for multi-chip, can't use the same firmware for all chips
 	 */
-	if (firmware_path[0] != '\0')
+	if (firmware_path[0] != '\0') {
 		fw = firmware_path;
+	}
+#ifdef DHD_MAP_CHIP_FIRMWARE_PATH
+	else {
+		chip_fw = firmware_path;
+		chip_fw_size = MOD_PARAM_PATHLEN;
+	}
+#endif /* DHD_MAP_CHIP_FIRMWARE_PATH */
 
-	if (nvram_path[0] != '\0')
+	if (nvram_path[0] != '\0') {
 		nv = nvram_path;
+	}
+#ifdef DHD_MAP_CHIP_FIRMWARE_PATH
+	else {
+		chip_nv = nvram_path;
+		chip_nv_size = MOD_PARAM_PATHLEN;
+	}
+#endif /* DHD_MAP_CHIP_FIRMWARE_PATH */
 
 #ifdef DHD_UCODE_DOWNLOAD
 	if (ucode_path[0] != '\0')
 		uc = ucode_path;
 #endif /* DHD_UCODE_DOWNLOAD */
+
+#ifdef DHD_MAP_CHIP_FIRMWARE_PATH
+	if ((chip_fw != NULL) || (chip_nv != NULL)) {
+		dhd_map_fw_nv_path_by_chip(dhdinfo, chip_fw, chip_fw_size, chip_nv, chip_nv_size);
+
+		if (chip_fw != NULL) {
+			fw = chip_fw;
+		}
+
+		if (chip_nv != NULL) {
+			nv = chip_nv;
+		}
+	}
+#endif /* DHD_MAP_CHIP_FIRMWARE_PATH */
 
 	if (fw && fw[0] != '\0') {
 		fw_len = strlen(fw);
@@ -9538,11 +9726,23 @@ bool dhd_update_fw_nv_path(dhd_info_t *dhdinfo)
 	}
 #endif /* DHD_UCODE_DOWNLOAD */
 
+#ifdef DHD_DYNAMIC_UPDATE_FW_NV_PATH
+	/* Update firmware/NVRAM module parameter */
+	if ((fw != NULL) && (firmware_path[0] == '\0')) {
+		strncpy(firmware_path, fw, (MOD_PARAM_PATHLEN - 1));
+	}
+
+	if ((nv != NULL) && (nvram_path[0] == '\0')) {
+		strncpy(nvram_path, nv, (MOD_PARAM_PATHLEN - 1));
+	}
+#else /* DHD_DYNAMIC_UPDATE_FW_NV_PATH */
 	/* clear the path in module parameter */
 	if (dhd_download_fw_on_driverload) {
 		firmware_path[0] = '\0';
 		nvram_path[0] = '\0';
 	}
+#endif /* DHD_DYNAMIC_UPDATE_FW_NV_PATH */
+
 #ifdef DHD_UCODE_DOWNLOAD
 	ucode_path[0] = '\0';
 	DHD_ERROR(("ucode path: %s\n", dhdinfo->uc_path));
@@ -10688,6 +10888,12 @@ dhd_preinit_ioctls(dhd_pub_t *dhd)
 	}
 #endif /* GET_CUSTOM_MAC_ENABLE */
 
+#ifdef DHD_MAP_CHIP_FIRMWARE_PATH
+	if (clm_path[0] == '\0') {
+		dhd_map_clm_path_by_chip(dhd->info, clm_path, MOD_PARAM_PATHLEN);
+	}
+#endif /* DHD_MAP_CHIP_FIRMWARE_PATH */
+
 	if ((ret = dhd_apply_default_clm(dhd, clm_path)) < 0) {
 		DHD_ERROR(("%s: CLM set failed. Abort initialization.\n", __FUNCTION__));
 		goto done;
@@ -11059,6 +11265,12 @@ dhd_preinit_ioctls(dhd_pub_t *dhd)
 	}
 
 #else /* OEM_ANDROID */
+
+#ifdef DHD_MAP_CHIP_FIRMWARE_PATH
+	if (clm_path[0] == '\0') {
+		dhd_map_clm_path_by_chip(dhd->info, clm_path, MOD_PARAM_PATHLEN);
+	}
+#endif /* DHD_MAP_CHIP_FIRMWARE_PATH */
 
 	if ((ret = dhd_apply_default_clm(dhd, clm_path)) < 0) {
 		DHD_ERROR(("%s: CLM set failed. Abort initialization.\n", __FUNCTION__));
@@ -13233,7 +13445,11 @@ dhd_module_cleanup(void)
 	dhd_wifi_platform_unregister_drv();
 }
 
+#ifdef CONFIG_DHD_PLAT_ROCKCHIP
+static void
+#else /* CONFIG_DHD_PLAT_ROCKCHIP */
 static void __exit
+#endif /* CONFIG_DHD_PLAT_ROCKCHIP */
 dhd_module_exit(void)
 {
 	atomic_set(&exit_in_progress, 1);
@@ -13242,7 +13458,11 @@ dhd_module_exit(void)
 	dhd_destroy_to_notifier_skt();
 }
 
+#ifdef CONFIG_DHD_PLAT_ROCKCHIP
+static int
+#else /* CONFIG_DHD_PLAT_ROCKCHIP */
 static int __init
+#endif /* CONFIG_DHD_PLAT_ROCKCHIP */
 dhd_module_init(void)
 {
 	int err;
@@ -13308,6 +13528,7 @@ dhd_reboot_callback(struct notifier_block *this, unsigned long code, void *unuse
 	return NOTIFY_DONE;
 }
 
+#ifndef CONFIG_DHD_PLAT_ROCKCHIP
 #if defined(CONFIG_DEFERRED_INITCALLS) && !defined(EXYNOS_PCIE_MODULE_PATCH)
 #if defined(CONFIG_MACH_UNIVERSAL7420) || defined(CONFIG_SOC_EXYNOS8890) || \
 	defined(CONFIG_ARCH_MSM8996) || defined(CONFIG_ARCH_MSM8998) || \
@@ -13329,6 +13550,45 @@ late_initcall(dhd_module_init);
 #endif /* USE_LATE_INITCALL_SYNC */
 
 module_exit(dhd_module_exit);
+#else /* CONFIG_DHD_PLAT_ROCKCHIP */
+#ifdef CONFIG_WIFI_LOAD_DRIVER_WHEN_KERNEL_BOOTUP
+static int wifi_init_thread(void *data)
+{
+	dhd_module_init();
+	return 0;
+}
+#endif /* CONFIG_WIFI_LOAD_DRIVER_WHEN_KERNEL_BOOTUP */
+
+int __init rockchip_wifi_init_module_rkwifi(void)
+{
+#ifdef CONFIG_WIFI_LOAD_DRIVER_WHEN_KERNEL_BOOTUP
+	struct task_struct *kthread = NULL;
+
+	kthread = kthread_run(wifi_init_thread, NULL, "wifi_init_thread");
+
+	if (IS_ERR(kthread)) {
+		DHD_ERROR(("create wifi_init_thread failed.\n"));
+	}
+
+	return 0; 
+#else /* CONFIG_WIFI_LOAD_DRIVER_WHEN_KERNEL_BOOTUP */
+	return dhd_module_init();
+#endif /* CONFIG_WIFI_LOAD_DRIVER_WHEN_KERNEL_BOOTUP */
+}
+
+void __exit rockchip_wifi_exit_module_rkwifi(void)
+{
+	dhd_module_exit();
+}
+
+#ifdef CONFIG_WIFI_LOAD_DRIVER_WHEN_KERNEL_BOOTUP
+late_initcall(rockchip_wifi_init_module_rkwifi);
+module_exit(rockchip_wifi_exit_module_rkwifi);
+#else /* CONFIG_WIFI_LOAD_DRIVER_WHEN_KERNEL_BOOTUP */
+module_init(rockchip_wifi_init_module_rkwifi);
+module_exit(rockchip_wifi_exit_module_rkwifi);
+#endif /* CONFIG_WIFI_LOAD_DRIVER_WHEN_KERNEL_BOOTUP */
+#endif /* CONFIG_DHD_PLAT_ROCKCHIP */
 
 /*
  * OS specific functions required to implement DHD driver in OS independent way
@@ -16591,6 +16851,11 @@ write_dump_to_file(dhd_pub_t *dhd, uint8 *buf, int size, char *fname)
 		DHD_COMMON_DUMP_PATH, fname, memdump_type,  dhd->debug_dump_time_str);
 	file_mode = O_CREAT | O_WRONLY;
 #elif defined(OEM_ANDROID)
+#ifdef CONFIG_DHD_PLAT_ROCKCHIP
+	snprintf(memdump_path, sizeof(memdump_path), "%s%s_%s_" "%s",
+		DHD_COMMON_DUMP_PATH, fname, memdump_type,	dhd->debug_dump_time_str);
+	file_mode = O_CREAT | O_WRONLY | O_SYNC;
+#else /* CONFIG_DHD_PLAT_ROCKCHIP */
 	snprintf(memdump_path, sizeof(memdump_path), "%s%s_%s_" "%s",
 		"/root/", fname, memdump_type,  dhd->debug_dump_time_str);
 	/* Extra flags O_DIRECT and O_SYNC are required for Brix Android, as we are
@@ -16611,6 +16876,7 @@ write_dump_to_file(dhd_pub_t *dhd, uint8 *buf, int size, char *fname)
 			filp_close(fp, NULL);
 		}
 	}
+#endif /* CONFIG_DHD_PLAT_ROCKCHIP */
 #else
 	snprintf(memdump_path, sizeof(memdump_path), "%s%s_%s_" "%s",
 		DHD_COMMON_DUMP_PATH, fname, memdump_type,  dhd->debug_dump_time_str);
@@ -17823,6 +18089,8 @@ int dhd_set_ap_isolate(dhd_pub_t *dhdp, uint32 idx, int val)
 #define RNDINFO PLATFORM_PATH".rnd"
 #elif defined(CUSTOMER_HW2) || defined(BOARD_HIKEY)
 #define RNDINFO "/data/misc/wifi/.rnd"
+#elif defined(OEM_ANDROID) && defined(CONFIG_DHD_PLAT_ROCKCHIP)
+#define RNDINFO	"/data/misc/wifi/.rnd"
 #elif defined(OEM_ANDROID) && (defined(BOARD_PANDA) || defined(__ARM_ARCH_7A__))
 #define RNDINFO "/data/misc/wifi/.rnd"
 #elif defined(OEM_ANDROID)
@@ -18475,8 +18743,11 @@ void dhd_schedule_log_dump(dhd_pub_t *dhdp, void *type)
 static void
 dhd_print_buf_addr(dhd_pub_t *dhdp, char *name, void *buf, unsigned int size)
 {
-	if ((dhdp->memdump_enabled == DUMP_MEMONLY) ||
+	if (
+#ifdef DHD_FW_COREDUMP
+		(dhdp->memdump_enabled == DUMP_MEMONLY) ||
 		(dhdp->memdump_enabled == DUMP_MEMFILE_BUGON) ||
+#endif /* DHD_FW_COREDUMP */
 		(dhdp->memdump_type == DUMP_TYPE_SMMU_FAULT)) {
 #if defined(CONFIG_ARM64)
 		DHD_ERROR(("-------- %s: buf(va)=%llx, buf(pa)=%llx, bufsize=%d\n",
@@ -19033,6 +19304,7 @@ dhd_log_flush(dhd_pub_t *dhdp, log_dump_type_t *type)
 	/* flush the event work items to get any fw events/logs
 	 * flush_work is a blocking call
 	 */
+#ifdef SHOW_LOGTRACE
 #ifdef EWP_EDL
 	if (dhd_info->pub.dongle_edl_support) {
 		/* wait till existing edl items are processed */
@@ -19054,6 +19326,7 @@ dhd_log_flush(dhd_pub_t *dhdp, log_dump_type_t *type)
 #else
 	dhd_flush_logtrace_process(dhd_info);
 #endif /* EWP_EDL */
+#endif /* SHOW_LOGTRACE */
 
 #ifdef CUSTOMER_HW4_DEBUG
 	/* print last 'x' KB of preserve buffer data to kmsg console
@@ -19569,7 +19842,11 @@ do_dhd_log_dump(dhd_pub_t *dhdp, log_dump_type_t *type)
 		dhdp->last_file_posn = 0;
 	}
 #else
-	ret = vfs_stat(dump_path, &stat);
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0))
+	ret = vfs_getattr(&fp->f_path, &stat, STATX_BASIC_STATS, AT_STATX_SYNC_AS_STAT);
+#else /* (LINUX_VERSION_CODE > KERNEL_VERSION(4, 11, 0)) */
+	ret = vfs_getattr(&fp->f_path, &stat);
+#endif /* (LINUX_VERSION_CODE > KERNEL_VERSION(4, 11, 0)) */
 	if (ret < 0) {
 		DHD_ERROR(("file stat error, err = %d\n", ret));
 		goto exit2;

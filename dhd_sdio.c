@@ -57,6 +57,14 @@
 #include <bcmsdbus.h>
 #include <trxhdr.h>
 
+#ifdef DHD_KSO_MMC_RETUNE
+#if ((LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)) || defined(CONFIG_DHD_PLAT_ROCKCHIP))
+#include <linux/mmc/sdio_func.h>
+#include <linux/mmc/host.h>
+#include "bcmsdh_sdmmc.h"
+#endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)) */
+#endif /* DHD_KSO_MMC_RETURN */
+
 #include <ethernet.h>
 #include <802.1d.h>
 #include <802.11.h>
@@ -117,6 +125,10 @@ static int dhdsdio_resume(void *context);
 #define MAX_MEMBLOCK  (32 * 1024)	/* Block size used for downloading of dongle image */
 
 #define MAX_DATA_BUF	(64 * 1024)	/* Must be large enough to hold biggest possible glom */
+
+#ifdef DHD_SDIO_MEM_BUF
+#define MAX_MEM_BUF     (4 * 1024)
+#endif /* DHD_SDIO_MEM_BUF */
 
 #ifndef DHD_FIRSTREAD
 #define DHD_FIRSTREAD   32
@@ -300,6 +312,10 @@ typedef struct dhd_bus {
 	char		*fw_path;		/* module_param: path to firmware image */
 	char		*nv_path;		/* module_param: path to nvram vars file */
 
+#ifdef DHD_MAP_CHIP_FIRMWARE_PATH
+	uint		chipmodule; 	/* chip module ID */
+#endif /* DHD_MAP_CHIP_FIRMWARE_PATH */
+
 	uint		blocksize;		/* Block size of SDIO transfers */
 	uint		roundup;		/* Max roundup limit */
 
@@ -460,6 +476,9 @@ typedef struct dhd_bus {
 #endif /* defined (BT_OVER_SDIO) */
 	bool		chipidpresent;	/* ChipID is present in SDIO core enum address space */
 	bool		secureboot;		/* security related features are present */
+#ifdef DHD_SDIO_MEM_BUF
+	uint8		*membuf;
+#endif /* DHD_SDIO_MEM_BUF */
 } dhd_bus_t;
 
 /*
@@ -717,6 +736,10 @@ do {												\
 #endif /* BCMSPI */
 
 extern uint sd_f2_blocksize;
+
+#ifdef DHD_MAP_CHIP_FIRMWARE_PATH
+extern uint sd_chip_module;
+#endif /* DHD_MAP_CHIP_FIRMWARE_PATH */
 
 #ifdef SDTEST
 static void dhdsdio_testrcv(dhd_bus_t *bus, void *pkt, uint seq);
@@ -1101,7 +1124,7 @@ dhdsdio_clk_kso_init(dhd_bus_t *bus)
 	return 0;
 }
 
-#define KSO_DBG(x)
+#define KSO_DBG(x)						DHD_TRACE(x)
 #define KSO_WAIT_US 50
 #define KSO_WAIT_MS 1
 #define KSO_SLEEP_RETRY_COUNT 20
@@ -1120,7 +1143,30 @@ dhdsdio_clk_kso_enab(dhd_bus_t *bus, bool on)
 	int err = 0;
 	int try_cnt = 0;
 
+#ifdef DHD_KSO_MMC_RETUNE
+#if ((LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)) || defined(CONFIG_DHD_PLAT_ROCKCHIP))
+	struct sdioh_info *sd = (struct sdioh_info *)(bus->sdh->sdioh);
+	struct sdio_func *func = sd->func[1];
+	struct mmc_host *host = func->card->host;
+#endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)) */
+#endif /* DHD_KSO_MMC_RETUNE */
+
 	KSO_DBG(("%s> op:%s\n", __FUNCTION__, (on ? "KSO_SET" : "KSO_CLR")));
+
+#ifdef DHD_KSO_MMC_RETUNE
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0))
+	sdio_retune_crc_disable(func);
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0) */
+	if (on) {
+		mmc_retune_hold_now(host);
+	}
+#else /* (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)) */
+#ifdef CONFIG_DHD_PLAT_ROCKCHIP
+	mmc_retune_disable(host);
+#endif /* CONFIG_DHD_PLAT_ROCKCHIP */
+#endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)) */
+#endif /* DHD_KSO_MMC_RETUNE */
 
 	wr_val |= (on << SBSDIO_FUNC1_SLEEPCSR_KSO_SHIFT);
 
@@ -1133,7 +1179,7 @@ dhdsdio_clk_kso_enab(dhd_bus_t *bus, bool on)
 	if ((!on) && (bus->sih->chip == BCM43012_CHIP_ID ||
 			bus->sih->chip == CYW55500_CHIP_ID ||
 			bus->sih->chip == CYW55560_CHIP_ID)) {
-		return err;
+		goto exit;
 	}
 
 	if (on) {
@@ -1171,6 +1217,22 @@ dhdsdio_clk_kso_enab(dhd_bus_t *bus, bool on)
 		DHD_ERROR(("%s> op:%s, ERROR: try_cnt:%d, rd_val:%x, ERR:%x \n",
 			__FUNCTION__, (on ? "KSO_SET" : "KSO_CLR"), try_cnt, rd_val, err));
 	}
+
+exit:
+#ifdef DHD_KSO_MMC_RETUNE
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0))
+	if (on) {
+		mmc_retune_release(host);
+	}
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0))
+	sdio_retune_crc_enable(func);
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0) */
+#else /* (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)) */
+#ifdef CONFIG_DHD_PLAT_ROCKCHIP
+	mmc_retune_enable(host);
+#endif /* CONFIG_DHD_PLAT_ROCKCHIP */
+#endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)) */
+#endif /* DHD_KSO_MMC_RETUNE */
 
 	return err;
 }
@@ -3417,6 +3479,42 @@ dhdsdio_membytes(dhd_bus_t *bus, bool write, uint32 address, uint8 *data, uint s
 
 	/* Do the transfer(s) */
 	while (size) {
+#ifdef DHD_SDIO_MEM_BUF
+		uint8 *pdata = data;
+		uint offset = sdaddr;
+		uint remain = dsize;
+
+		while (remain > 0) {
+			uint nbytes;
+
+			if (remain > MAX_MEM_BUF) {
+				nbytes = MAX_MEM_BUF;
+			} else {
+				nbytes = remain;
+			}
+
+			DHD_INFO(("%s: %s %d bytes at offset 0x%08x in window 0x%08x\n",
+					  __FUNCTION__, (write ? "write" : "read"), nbytes, offset,
+						 (address & SBSDIO_SBWINDOW_MASK)));
+		
+			if (write) {
+				memcpy(bus->membuf, pdata, nbytes);
+			}
+
+			if ((bcmerror = bcmsdh_rwdata(bus->sdh, write, offset, bus->membuf, nbytes))) {
+				DHD_ERROR(("%s: membytes transfer failed\n", __FUNCTION__));
+				break;
+			}
+
+			if (!write) {
+				memcpy(pdata, bus->membuf, nbytes);
+			}
+
+			pdata += nbytes;
+			offset += nbytes;
+			remain -= nbytes;
+		}
+#else /* DHD_SDIO_MEM_BUF */
 		DHD_INFO(("%s: %s %d bytes at offset 0x%08x in window 0x%08x\n",
 		          __FUNCTION__, (write ? "write" : "read"), dsize, sdaddr,
 		          (address & SBSDIO_SBWINDOW_MASK)));
@@ -3424,7 +3522,7 @@ dhdsdio_membytes(dhd_bus_t *bus, bool write, uint32 address, uint8 *data, uint s
 			DHD_ERROR(("%s: membytes transfer failed\n", __FUNCTION__));
 			break;
 		}
-
+#endif /* DHD_SDIO_MEM_BUF */
 		/* Adjust for next transfer (if any) */
 		if ((size -= dsize)) {
 			data += dsize;
@@ -5627,7 +5725,8 @@ dhd_bus_init(dhd_pub_t *dhdp, bool enforce_mutex)
 	ASSERT(bus->dhd);
 	if (!bus->dhd)
 		return 0;
-
+	
+#if (0)
 	if ((ret = dhdsdio_readshared_console(bus)) >= 0) {
 		DHD_ERROR(("initialized console"));
 #ifdef DHD_DEBUG
@@ -5637,6 +5736,7 @@ dhd_bus_init(dhd_pub_t *dhdp, bool enforce_mutex)
 		}
 #endif /* DHD_DEBUG */
 	}
+#endif
 
 #if defined(PLATFORM_IMX)
 	/* dhdsdio_readshared_console is failed sometimes in i.MX platform
@@ -8815,6 +8915,10 @@ dhdsdio_probe_attach(struct dhd_bus *bus, osl_t *osh, void *sdh, void *regsva,
 		bus->sih->socitype, bus->sih->chip, bus->sih->chiprev, bus->sih->chippkg));
 #endif /* DHD_DEBUG */
 
+#ifdef DHD_MAP_CHIP_FIRMWARE_PATH
+	bus->chipmodule = sd_chip_module;
+#endif /* DHD_MAP_CHIP_FIRMWARE_PATH */
+
 	bcmsdh_chipinfo(sdh, bus->sih->chip, bus->sih->chiprev);
 
 	if (!dhdsdio_chipmatch((uint16)bus->sih->chip)) {
@@ -9016,6 +9120,23 @@ dhdsdio_probe_malloc(dhd_bus_t *bus, osl_t *osh, void *sdh)
 			DHD_OS_PREFREE(bus->dhd, bus->rxbuf, bus->rxblen);
 		goto fail;
 	}
+
+#ifdef DHD_SDIO_MEM_BUF
+	bus->membuf = MALLOC(osh, MAX_MEM_BUF);
+	if (bus->membuf == NULL) {
+		DHD_ERROR(("%s: MALLOC of %d-byte membuf failed\n", __FUNCTION__, MAX_MEM_BUF));
+		if (bus->databuf) {
+#ifndef CONFIG_DHD_USE_STATIC_BUF
+			MFREE(osh, bus->databuf, MAX_DATA_BUF);
+#endif /* CONFIG_DHD_USE_STATIC_BUF */
+			bus->databuf = NULL;
+		}
+		if (!bus->rxblen)
+			DHD_OS_PREFREE(bus->dhd, bus->rxbuf, bus->rxblen);
+		goto fail;
+	}
+	memset(bus->membuf, 0, MAX_MEM_BUF);
+#endif /* DHD_SDIO_MEM_BUF */
 
 	/* Align the buffer */
 	if ((uintptr)bus->databuf % DHD_SDALIGN)
@@ -9252,6 +9373,13 @@ dhdsdio_release_malloc(dhd_bus_t *bus, osl_t *osh)
 #endif // endif
 		bus->databuf = NULL;
 	}
+
+#ifdef DHD_SDIO_MEM_BUF
+	if (bus->membuf) {
+		MFREE(osh, bus->membuf, MAX_MEM_BUF);
+		bus->membuf = NULL;
+	}
+#endif /* DHD_SDIO_MEM_BUF */
 
 	if (bus->vars && bus->varsz) {
 		MFREE(osh, bus->vars, bus->varsz);
@@ -10185,6 +10313,16 @@ uint dhd_bus_chiprev_id(dhd_pub_t *dhdp)
 
 	return bus->sih->chiprev;
 }
+
+#ifdef DHD_MAP_CHIP_FIRMWARE_PATH
+/* Get Chip Module ID version*/
+uint dhd_bus_chipmodule_id(dhd_pub_t *dhdp)
+{
+	dhd_bus_t *bus = dhdp->bus;
+
+	return bus->chipmodule;
+}
+#endif /* DHD_MAP_CHIP_FIRMWARE_PATH */
 
 /* Get Chip Pkg ID version */
 uint dhd_bus_chippkg_id(dhd_pub_t *dhdp)

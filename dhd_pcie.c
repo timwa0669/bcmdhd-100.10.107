@@ -910,6 +910,14 @@ uint dhd_bus_chiprev_id(dhd_pub_t *dhdp)
 	return bus->sih->chiprev;
 }
 
+#ifdef DHD_MAP_CHIP_FIRMWARE_PATH
+/* Get Chip Module ID */
+uint dhd_bus_chipmodule_id(dhd_pub_t *dhdp)
+{
+	return 0;
+}
+#endif /* DHD_MAP_CHIP_FIRMWARE_PATH */
+
 /** Get Chip Pkg ID version */
 uint dhd_bus_chippkg_id(dhd_pub_t *dhdp)
 {

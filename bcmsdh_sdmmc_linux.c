@@ -52,6 +52,7 @@
 #endif /* !defined(SDIO_VENDOR_ID_BROADCOM) */
 
 #define SDIO_DEVICE_ID_BROADCOM_DEFAULT	0x0000
+#define SDIO_DEVICE_ID_CYPRESS_DEFAULT	0x0000
 
 extern void wl_cfg80211_set_parent_dev(void *dev);
 extern void sdioh_sdmmc_devintr_off(sdioh_info_t *sd);
@@ -196,6 +197,8 @@ static const struct sdio_device_id bcmsdh_sdmmc_ids[] = {
 	{ SDIO_DEVICE(CY_DNGL_VID, BCM43439_CHIP_ID) },
 	{ SDIO_DEVICE(CY_DNGL_VID, BCM_DNGL_BL_PID_43439) },
 	{ SDIO_DEVICE(CY_DNGL_VID, BCM_DNGL_BL_PID_89570) },
+	{ SDIO_DEVICE(CY_DNGL_VID,  SDIO_DEVICE_ID_CYPRESS_DEFAULT) },
+	{ SDIO_DEVICE_CLASS(SDIO_CLASS_NONE)	},
 	/* { SDIO_DEVICE(SDIO_VENDOR_ID_BROADCOM, SDIO_ANY_ID) }, */
 	 /* end: all zeroes */
 	{ 0, 0, 0, 0},
@@ -272,6 +275,8 @@ static int dummy_probe(struct sdio_func *func,
                               const struct sdio_device_id *id)
 {
 	sd_err(("%s: enter\n", __FUNCTION__));
+	
+#if (0)
 	if (func)
 		sd_err(("%s: func->num=0x%x; \n", __FUNCTION__, func->num));
 	if (id) {
@@ -281,6 +286,8 @@ static int dummy_probe(struct sdio_func *func,
 			(id->vendor != CY_DNGL_VID))
 				return -ENODEV;
 	}
+#endif
+
 	if (func && (func->num != 2)) {
 		return 0;
 	}

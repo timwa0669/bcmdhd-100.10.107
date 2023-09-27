@@ -187,6 +187,10 @@ static struct device *cfg80211_parent_dev = NULL;
 static struct bcm_cfg80211 *g_bcmcfg = NULL;
 u32 wl_dbg_level = WL_DBG_ERR | WL_DBG_P2P_ACTION | WL_DBG_INFO;
 
+#ifdef DHD_DEBUG
+module_param(wl_dbg_level, uint, 0664);
+#endif /* DHD_DEBUG */
+
 #define	MAX_VIF_OFFSET	15
 #define MAX_WAIT_TIME 1500
 #ifdef WLAIBSS_MCHAN

@@ -5722,6 +5722,9 @@ dhd_check_current_clm_data(dhd_pub_t *dhd)
 int
 dhd_apply_default_clm(dhd_pub_t *dhd, char *clm_path)
 {
+#ifdef DHD_WITHOUT_CLM_SUPPORT
+	 return BCME_OK;
+#else /* DHD_WITHOUT_CLM_SUPPORT */
 	char *clm_blob_path;
 	int len;
 	char *memblock = NULL;
@@ -5831,6 +5834,7 @@ exit:
 	}
 
 	return err;
+#endif /* DHD_WITHOUT_CLM_SUPPORT */
 }
 
 void dhd_free_download_buffer(dhd_pub_t	*dhd, void *buffer, int length)
