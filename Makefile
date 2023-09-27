@@ -104,6 +104,8 @@ endif
 # Custom feature
 #####################
 
+DHDCFLAGS += -Wno-unused-function
+
 # wl_cfgp2p.c: wl_cfgp2p_add_p2p_disc_if
 # Fix wpa_supplicant crash. This can happen due to
 # supplicant crash/unclean de-initialization which
