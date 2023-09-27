@@ -341,11 +341,11 @@ ifeq ($(CONFIG_ANDROID),y)
   DHDCFLAGS += -Wno-date-time
 
 #Android features
-ifeq ($(shell expr $(CONFIG_ANDROID_VERSION) \>= 12), 1)
+ifeq ($(shell expr $(CONFIG_ANDROID_VERSION) >= 12), 1)
 # For android toolchain.
  DHDCFLAGS += -Wno-unused-const-variable
  DHDCFLAGS += -Wno-unneeded-internal-declaration
-ifeq ($(shell expr $(CONFIG_ANDROID_VERSION) \>= 13), 1)
+ifeq ($(shell expr $(CONFIG_ANDROID_VERSION) >= 13), 1)
  DHDCFLAGS += -Wno-unused-but-set-variable
  DHDCFLAGS += -DDHD_ANDROID_KERNEL5_15_SUPPORT
 endif
