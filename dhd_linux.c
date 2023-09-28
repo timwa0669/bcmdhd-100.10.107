@@ -9465,30 +9465,39 @@ typedef struct dhd_chip_fw_nv_map {
 				DHD_ ## chipname ## _CLM_PATH   \
 			}
 
-DHD_FW_NV_DEFINE(43438,         "cyw43438.bin",         "cyw43438.txt",         "cyw43438.clm_blob");
-DHD_FW_NV_DEFINE(43438_AZW,     "cyw43438.bin",         "cyw43438_azw372.txt",  "cyw43438.clm_blob");
-DHD_FW_NV_DEFINE(43455,         "cyw43455.bin",         "cyw43455.txt",         "cyw43455.clm_blob");
-DHD_FW_NV_DEFINE(43455_AZW,     "cyw43455.bin",         "cyw43455_azw256.txt",  "cyw43455.clm_blob");
-DHD_FW_NV_DEFINE(4354,          "cyw4354.bin",          "cyw4354.txt",          "cyw4354.clm_blob");
-DHD_FW_NV_DEFINE(4354_AZW,      "cyw4354.bin",          "cyw4354_azw235.txt",   "cyw4354.clm_blob");
 #ifdef BCMSDIO
-DHD_FW_NV_DEFINE(54591,         "cyw54591_sdio.bin",    "cyw54591_sdio.txt",    "cyw54591.clm_blob");
-DHD_FW_NV_DEFINE(5557x,         "cyw5557x_sdio.bin",    "cyw5557x_sdio.txt",    "cyw5557x.clm_blob");
+DHD_FW_NV_DEFINE(43438,				"cyfmac43430-sdio.bin",		"cyfmac43430-sdio.txt",			"cyfmac43430-sdio.clm_blob");
+DHD_FW_NV_DEFINE(43438_AZW,			"cyfmac43430-sdio.bin",		"cyfmac43430-sdio_azw372.txt",	"cyfmac43430-sdio.clm_blob");
+DHD_FW_NV_DEFINE(43455,				"cyfmac43455-sdio.bin",		"cyfmac43455-sdio.txt",			"cyfmac43455-sdio.clm_blob");
+DHD_FW_NV_DEFINE(43455_AZW,			"cyfmac43455-sdio.bin",		"cyfmac43455-sdio_azw256.txt",	"cyfmac43455-sdio.clm_blob");
+DHD_FW_NV_DEFINE(4354,				"cyfmac4354-sdio.bin",		"cyfmac4354-sdio.txt",			"cyfmac4354-sdio.clm_blob");
+DHD_FW_NV_DEFINE(4354_AZW,			"cyfmac4354-sdio.bin",		"cyfmac4354-sdio_azw235.txt",	"cyfmac4354-sdio.clm_blob");
+DHD_FW_NV_DEFINE(4373,				"cyfmac4373-sdio.bin",		"cyfmac4373-sdio.txt",			"cyfmac4373-sdio.clm_blob");
+DHD_FW_NV_DEFINE(54591,				"cyfmac54591-sdio.bin",		"cyfmac54591-sdio.txt",			"cyfmac54591-sdio.clm_blob");
+DHD_FW_NV_DEFINE(55572,				"cyfmac55572-sdio.trxse",	"cyfmac55572-sdio.txt",			"cyfmac55572-sdio.clm_blob");
 #endif /* BCMSDIO */
 #ifdef BCMPCIE
-DHD_FW_NV_DEFINE(54591,         "cyw54591_pcie.bin",    "cyw54591_pcie.txt",    "cyw54591.clm_blob");
-DHD_FW_NV_DEFINE(5557x,         "cyw5557x_pcie.bin",    "cyw5557x_pcie.txt",    "cyw5557x.clm_blob");
+DHD_FW_NV_DEFINE(54591,				"cyfmac54591-pcie.bin",		"cyfmac54591-pcie.txt",			"cyfmac54591-pcie.clm_blob");
+DHD_FW_NV_DEFINE(55572,				"cyfmac55572-pcie.trxse",	"cyfmac55572-pcie.txt",			"cyfmac55572-pcie.clm_blob");
 #endif /* BCMPCIE */
 
 static dhd_chip_fw_nv_map_t dhd_fw_nv_table[] = {
+#ifdef BCMSDIO
 	DHD_FW_NV_ENTRY(43438,          BCM43430_CHIP_ID,   1,      0),
-	DHD_FW_NV_ENTRY(43438_AZW,      BCM43430_CHIP_ID,   1,      0x81),
+	DHD_FW_NV_ENTRY(43438,      	BCM43430_CHIP_ID,   1,      0x81),
 	DHD_FW_NV_ENTRY(43455,          BCM4345_CHIP_ID,    6,      0),
-	DHD_FW_NV_ENTRY(43455_AZW,      BCM4345_CHIP_ID,    6,      0x81),
+	DHD_FW_NV_ENTRY(43455,      	BCM4345_CHIP_ID,    6,      0x81),
 	DHD_FW_NV_ENTRY(4354,           BCM4354_CHIP_ID,    0,      0),
-	DHD_FW_NV_ENTRY(4354_AZW,       BCM4354_CHIP_ID,    0,      0x81),
+	DHD_FW_NV_ENTRY(4354,       	BCM4354_CHIP_ID,    0,      0x81),
+	DHD_FW_NV_ENTRY(4373,           BCM4373_CHIP_ID,    0,      0),
 	DHD_FW_NV_ENTRY(54591,          BCM4355_CHIP_ID,    0x0D,   0),
-	DHD_FW_NV_ENTRY(5557x,          CYW55560_CHIP_ID,   1,      0),
+	DHD_FW_NV_ENTRY(55572,          CYW55560_CHIP_ID,   1,      0),
+#endif /* BCMSDIO */
+#ifdef BCMPCIE
+	DHD_FW_NV_ENTRY(54591,          BCM4355_CHIP_ID,    0x0D,   0),
+	DHD_FW_NV_ENTRY(55572,          CYW55560_CHIP_ID,   1,      0),
+	DHD_FW_NV_ENTRY(55572,          CYW55560_CHIP_ID,   2,      0),
+#endif /* BCMPCIE */
 };
 
 static dhd_chip_fw_nv_map_t* dhd_get_map_entry_by_chip(struct dhd_info *dhdinfo)
@@ -11725,6 +11734,9 @@ dhd_preinit_ioctls(dhd_pub_t *dhd)
 		setbit(eventmask_msg->mask, WLC_E_MGMT_FRAME_TXSTATUS);
 		setbit(eventmask_msg->mask, WLC_E_MGMT_FRAME_OFF_CHAN_COMPLETE);
 #endif /* WL_SAE */
+#ifndef CONFIG_SOC_S5E5515
+				setbit(eventmask_msg->mask, WLC_E_IND_DOS_STATUS);
+#endif // endif
 #ifdef ENABLE_HOGSQS
 		setbit(eventmask_msg->mask, WLC_E_LDF_HOGGER);
 #endif /* ENABLE_HOGSQS */
