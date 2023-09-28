@@ -32,7 +32,7 @@ config CYW43438
 config CYW43455
 	bool "CYW43455 support"
 	depends on BCMDHD
-	default y
+	default n
 
 config CYW4354
 	bool "CYW4354 support"
