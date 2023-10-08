@@ -16,10 +16,14 @@ CYW55572_PCIE
 ## Build flags
 Please see Kconfig and Makefile.
 
-e.g. for rockchip platform and CYW43455
+e.g.
+
+Rockchip Platform
+
+CYW43455 chip with SDIO interface, oob enabled by default
 ```
 make -j$(grep -c processor /proc/cpuinfo) \
-	KLIB=$(your kernel source directory) \
+	KDIR=$(your kernel source directory) \
 	M=$(pwd) \
 	CONFIG_BCMDHD_ROCKCHIP_PLATFORM=y \
 	CONFIG_CYW43455=y
