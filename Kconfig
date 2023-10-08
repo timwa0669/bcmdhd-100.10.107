@@ -6,13 +6,10 @@
 #
 
 config BCMDHD
-	tristate "Broadcom FullMAC wireless cards support"
+	tristate "Broadcom/Cypress/IFX FullMAC wireless cards support"
 	help
 	  This module adds support for wireless adapters based on
-	  Broadcom FullMAC chipset.
-
-	  If you choose to build a module, it'll be called dhd. Say M if
-	  unsure.
+	  Broadcom/Cypress/IFX FullMAC chipset.
 
 config BCMDHD_ROCKCHIP_PLATFORM
 	bool "Rockchip platform support"
@@ -68,5 +65,8 @@ config WL_AP_IF
 	bool "Create additional AP interface during intialization"
 	depends on BCMDHD
 	default n
-	help
-	  Create additional AP interface during initialization.
+
+config BCMDHD_FIRMWARE_MAPPING
+	bool "Use firmware mapping table to autodiscovery firmware, nvram, clm_blob"
+	depends on BCMDHD
+	default y
