@@ -26,6 +26,11 @@ config CYW43438
 	depends on BCMDHD
 	default n
 
+config BCM43456
+	bool "BCM43456 support"
+	depends on BCMDHD
+	default n
+
 config CYW43455
 	bool "CYW43455 support"
 	depends on BCMDHD
