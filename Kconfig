@@ -46,6 +46,11 @@ config CYW4373_SDIO
 	depends on BCMDHD
 	default n
 
+config CYW43012_SDIO
+	bool "CYW43012_SDIO support"
+	depends on BCMDHD
+	default n
+
 config CYW54591_SDIO
 	bool "CYW54591_SDIO support"
 	depends on BCMDHD

@@ -9474,6 +9474,7 @@ DHD_FW_NV_DEFINE(43456,				"bcm43456_sdio.bin",			"bcm43456_sdio.txt",			"bcm434
 DHD_FW_NV_DEFINE(4354,				"cyw4354_sdio.bin",				"cyw4354_sdio.txt",				"cyw4354_sdio.clm_blob");
 DHD_FW_NV_DEFINE(4354_AZW,			"cyw4354_sdio_cm235nf.bin",		"cyw4354_sdio_cm235nf.txt",		"cyw4354_sdio_cm235nf.clm_blob");
 DHD_FW_NV_DEFINE(4373,				"cyw4373_sdio.bin",				"cyw4373_sdio.txt",				"cyw4373_sdio.clm_blob");
+DHD_FW_NV_DEFINE(43012,				"cyw43012_sdio.bin",			"cyw43012_sdio.txt",			"cyw43012_sdio.clm_blob");
 DHD_FW_NV_DEFINE(54591,				"cyw54591_sdio.bin",			"cyw54591_sdio.txt",			"cyw54591_sdio.clm_blob");
 DHD_FW_NV_DEFINE(55572,				"cyw55572_sdio.trxse",			"cyw55572_sdio.txt",			"cyw55572_sdio.clm_blob");
 #endif /* BCMSDIO */
@@ -9484,21 +9485,22 @@ DHD_FW_NV_DEFINE(55572,				"cyw55572_pcie.trxse",			"cyw55572_pcie.txt",			"cyw5
 
 static dhd_chip_fw_nv_map_t dhd_fw_nv_table[] = {
 #ifdef BCMSDIO
-	DHD_FW_NV_ENTRY(43438,          BCM43430_CHIP_ID,   1,      0),
-	DHD_FW_NV_ENTRY(43438_AZW,      BCM43430_CHIP_ID,   1,      0x81),
-	DHD_FW_NV_ENTRY(43455,          BCM4345_CHIP_ID,    6,      0),
-	DHD_FW_NV_ENTRY(43455_AZW,      BCM4345_CHIP_ID,    6,      0x81),
-	DHD_FW_NV_ENTRY(43456,      	BCM4345_CHIP_ID,    9,    	0),
-	DHD_FW_NV_ENTRY(4354,           BCM4354_CHIP_ID,    0,      0),
-	DHD_FW_NV_ENTRY(4354_AZW,       BCM4354_CHIP_ID,    0,      0x81),
-	DHD_FW_NV_ENTRY(4373,           BCM4373_CHIP_ID,    0,      0),
-	DHD_FW_NV_ENTRY(54591,          BCM4355_CHIP_ID,    0x0D,   0),
-	DHD_FW_NV_ENTRY(55572,          CYW55560_CHIP_ID,   1,      0),
+	DHD_FW_NV_ENTRY(43438,			BCM43430_CHIP_ID,	1,		0),
+	DHD_FW_NV_ENTRY(43438_AZW,		BCM43430_CHIP_ID,	1,		0x81),
+	DHD_FW_NV_ENTRY(43455,			BCM4345_CHIP_ID,	6,		0),
+	DHD_FW_NV_ENTRY(43455_AZW,		BCM4345_CHIP_ID,	6,		0x81),
+	DHD_FW_NV_ENTRY(43456,			BCM4345_CHIP_ID,	9,		0),
+	DHD_FW_NV_ENTRY(4354,			BCM4354_CHIP_ID,	0,		0),
+	DHD_FW_NV_ENTRY(4354_AZW,		BCM4354_CHIP_ID,	0,		0x81),
+	DHD_FW_NV_ENTRY(4373,			BCM4373_CHIP_ID,	0,		0),
+	DHD_FW_NV_ENTRY(43012,			BCM43012_CHIP_ID,	2,		0),
+	DHD_FW_NV_ENTRY(54591,			BCM4355_CHIP_ID,	0x0D,	0),
+	DHD_FW_NV_ENTRY(55572,			CYW55560_CHIP_ID,	1,		0),
 #endif /* BCMSDIO */
 #ifdef BCMPCIE
-	DHD_FW_NV_ENTRY(54591,          BCM4355_CHIP_ID,    0x0D,   0),
-	DHD_FW_NV_ENTRY(55572,          CYW55560_CHIP_ID,   1,      0),
-	DHD_FW_NV_ENTRY(55572,          CYW55560_CHIP_ID,   2,      0),
+	DHD_FW_NV_ENTRY(54591,			BCM4355_CHIP_ID,	0x0D,	0),
+	DHD_FW_NV_ENTRY(55572,			CYW55560_CHIP_ID,	1,		0),
+	DHD_FW_NV_ENTRY(55572,			CYW55560_CHIP_ID,	2,		0),
 #endif /* BCMPCIE */
 };
 
