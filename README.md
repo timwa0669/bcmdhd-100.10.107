@@ -4,13 +4,14 @@ Current version is forked from IFX AHD 100.10.107 and adapted for rockchip platf
 The code base contains IFX AHD and rockchip platform code.
 ## Supported chips
 ```
-CYW43438
-CYW43455
-CYW4354
-CYW4373
+CYW43438_SDIO
+BCM43456_SDIO
+CYW43455_SDIO
+CYW4354_SDIO
+CYW4373_SDIO
 CYW54591_SDIO
-CYW54591_PCIE
 CYW55572_SDIO
+CYW54591_PCIE
 CYW55572_PCIE
 ```
 ## Build flags
@@ -26,7 +27,7 @@ make -j$(grep -c processor /proc/cpuinfo) \
 	KDIR=$(your kernel source directory) \
 	M=$(pwd) \
 	CONFIG_BCMDHD_ROCKCHIP_PLATFORM=y \
-	CONFIG_CYW43455=y
+	CONFIG_CYW43455_SDIO=y
 ```
 ## DT-Bindings configuration (in progress)
 See dt-bindings-rockchip-example.md for more information
