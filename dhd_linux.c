@@ -9520,7 +9520,11 @@ static dhd_chip_fw_nv_map_t* dhd_get_map_entry_by_chip(struct dhd_info *dhdinfo)
 	for (i = 0; i < table_size; i++) {
 		if ((dhd_fw_nv_table[i].chip_id == chip_id) &&
 			(dhd_fw_nv_table[i].chip_rev == chip_rev) &&
+#ifdef DHD_MAP_CHIP_FIRMWARE_WITH_CHIP_MODULE
 			(dhd_fw_nv_table[i].chip_module == chip_module)) {
+#else /* DHD_MAP_CHIP_FIRMWARE_WITH_CHIP_MODULE */
+			(dhd_fw_nv_table[i].chip_module == 0)) {
+#endif /* DHD_MAP_CHIP_FIRMWARE_WITH_CHIP_MODULE */
 			entry = &dhd_fw_nv_table[i];
 			break;
 		}
