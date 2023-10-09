@@ -21,28 +21,28 @@ config HAVE_IMX8_SOC
 	depends on BCMDHD
 	default n
 
-config CYW43438
-	bool "CYW43438 support"
+config CYW43438_SDIO
+	bool "CYW43438_SDIO support"
 	depends on BCMDHD
 	default n
 
-config BCM43456
-	bool "BCM43456 support"
+config BCM43456_SDIO
+	bool "BCM43456_SDIO support"
 	depends on BCMDHD
 	default n
 
-config CYW43455
-	bool "CYW43455 support"
+config CYW43455_SDIO
+	bool "CYW43455_SDIO support"
 	depends on BCMDHD
 	default n
 
-config CYW4354
-	bool "CYW4354 support"
+config CYW4354_SDIO
+	bool "CYW4354_SDIO support"
 	depends on BCMDHD
 	default n
 
-config CYW4373
-	bool "CYW4373 support"
+config CYW4373_SDIO
+	bool "CYW4373_SDIO support"
 	depends on BCMDHD
 	default n
 
